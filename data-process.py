@@ -1,6 +1,6 @@
 """
-SpMV Benchmark Report Parser
-Extracts performance metrics from SpMV benchmark reports and saves to CSV format.
+SpMV/SpMM Benchmark Report Parser
+Extracts performance metrics from benchmark reports and saves to CSV format.
 Author: [Your Name]
 Date: [Current Date]
 """
@@ -31,9 +31,12 @@ def parse_spmv_report(file_path, output_csv=None):
         'total_nnz': r'Total non-zeros:\s*([\d.]+)',
         'sparsity': r'Sparsity:\s*([\d.]+)',
         'kernel': r'Kernel:\s*(.+)',
+        'operator': r'Operator:\s*(SpMV|SpMM)',
         'precision': r'Precision:\s*(.+)',
+        'dense_cols': r'Dense RHS columns:\s*(\d+)',
+        'dense_layout': r'Dense RHS layout:\s*(.+)',
         'preprocess_time': r'Preprocessing time:\s*([\d.]+)\s*microseconds',
-        'execution_time': r'Average SpMV execution time:\s*([\d.]+)\s*microseconds',
+        'execution_time': r'Average (?:SpMV|SpMM) execution time:\s*([\d.]+)\s*microseconds',
         'performance': r'Performance:\s*([\d.]+)\s*GFLOPS',
         'operations': r'Total operations:\s*([\d.]+)\s*\(multiply-adds\)',
         'memory_accessed': r'Memory accessed \(approx\):\s*([\d.]+)\s*bytes',
@@ -53,7 +56,7 @@ def parse_spmv_report(file_path, output_csv=None):
         return None, -1
     
     # Split content into individual reports
-    reports = re.split(r'SpMV Benchmark Report\s*=+', content)
+    reports = re.split(r'(?:SpMV|SpMM) Benchmark Report\s*=+', content)
     
     # Remove empty elements
     reports = [r.strip() for r in reports if r.strip()]
@@ -79,7 +82,10 @@ def parse_spmv_report(file_path, output_csv=None):
             'total_nnz': 0,
             'sparsity': 0.0,
             'kernel': 'default',
+            'operator': 'SpMV',
             'precision': '',
+            'dense_cols': 1,
+            'dense_layout': '',
             'preprocess_time_us': 0.0,
             'execution_time_us': 0.0,
             'performance_gflops': 0.0,
@@ -116,16 +122,28 @@ def parse_spmv_report(file_path, output_csv=None):
             row_data['sparsity'] = float(sparsity_match.group(1))
         
         # Extract kernel information
+        operator_match = re.search(patterns['operator'], report)
+        if operator_match:
+            row_data['operator'] = operator_match.group(1).strip()
+
         kernel_match = re.search(patterns['kernel'], report)
         if kernel_match:
             kernel_name = kernel_match.group(1).strip()
             row_data['kernel'] = kernel_name
             kernel_counts[kernel_name] += 1
         
-        # Extract preprocessing time
+        # Extract precision and dense RHS metadata
         precision_match = re.search(patterns['precision'], report)
         if precision_match:
             row_data['precision'] = precision_match.group(1).strip()
+
+        dense_cols_match = re.search(patterns['dense_cols'], report)
+        if dense_cols_match:
+            row_data['dense_cols'] = int(dense_cols_match.group(1))
+
+        dense_layout_match = re.search(patterns['dense_layout'], report)
+        if dense_layout_match:
+            row_data['dense_layout'] = dense_layout_match.group(1).strip()
 
         # Extract preprocessing time
         preprocess_match = re.search(patterns['preprocess_time'], report)
@@ -196,7 +214,8 @@ def parse_spmv_report(file_path, output_csv=None):
         if len(kernel_counts) == 1:
             # Single kernel: use format "{kernel}_spmv_results.csv"
             kernel_name = list(kernel_counts.keys())[0]
-            output_csv = f"{kernel_name}_spmv_results.csv"
+            operator_name = data_rows[0]['operator'].lower()
+            output_csv = f"{kernel_name}_{operator_name}_results.csv"
         else:
             # Multiple kernels: create combined file
             kernel_str = "_".join(sorted(kernel_counts.keys()))
@@ -222,7 +241,10 @@ def parse_spmv_report(file_path, output_csv=None):
                 'total_nnz',
                 'sparsity',
                 'kernel',
+                'operator',
                 'precision',
+                'dense_cols',
+                'dense_layout',
                 'preprocess_time_us',
                 'execution_time_us',
                 'execution_time_ms',

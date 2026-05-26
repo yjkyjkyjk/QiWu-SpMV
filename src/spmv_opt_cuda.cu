@@ -72,6 +72,7 @@ __global__ void csr_spmv_kernel(
         }
     }
 }
+
 #endif
 
 void SpMV_Benchmark::spmv_preprocess_cuda() {

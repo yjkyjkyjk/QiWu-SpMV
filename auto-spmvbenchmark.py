@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 import argparse
 
-def run_cpp_benchmark(folder_path, user_string, executable_name):
+def run_cpp_benchmark(folder_path, user_string, executable_name, operator_name="spmv", dense_cols=8):
     # 1. Check path valid
     if not os.path.isdir(folder_path):
         print(f"Error: path '{folder_path}' is not a valid directory", file=sys.stderr)
@@ -24,7 +24,7 @@ def run_cpp_benchmark(folder_path, user_string, executable_name):
 
     # Generate report name with timestamp
     current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    report_name = f"spmv-test-{current_time}"
+    report_name = f"{operator_name}-test-{current_time}"
 
     print(f"Running benchmark using: {cpp_executable}")
     print(f"Output report prefix: {report_name}")
@@ -33,7 +33,7 @@ def run_cpp_benchmark(folder_path, user_string, executable_name):
     success_count = 0
     for mtx in mtx_files:
         mtx_path = os.path.join(folder_path, mtx)
-        command = [cpp_executable, mtx_path, user_string, report_name]
+        command = [cpp_executable, mtx_path, user_string, report_name, operator_name, str(dense_cols)]
         print(f"Processing: {mtx} ...")
         try:
             result = subprocess.run(command, check=True, text=True, capture_output=True)
@@ -50,8 +50,8 @@ def run_cpp_benchmark(folder_path, user_string, executable_name):
 def main():
     parser = argparse.ArgumentParser(
         prog='auto-spmvbenchmark.py',
-        description='Automatically run SpMV benchmark on all .mtx files in a directory.',
-        epilog='Example: python auto-spmvbenchmark.py ./matrices_path unroll_cpu spmvBenchmark_cpu'
+        description='Automatically run SpMV or SpMM benchmark on all .mtx files in a directory.',
+        epilog='Example: python auto-spmvbenchmark.py ./matrices_path unroll_cpu spmvBenchmark_cpu --op spmm'
     )
 
     parser.add_argument(
@@ -69,10 +69,22 @@ def main():
         help='Name of the compiled executable (default: spmvBenchmark). '
              'Common options: spmvBenchmark_cpu, spmvBenchmark_cuda, spmvBenchmark_unified'
     )
+    parser.add_argument(
+        '--op',
+        choices=['spmv', 'spmm'],
+        default='spmv',
+        help='Operator to benchmark (default: spmv). SpMM uses a row-major dense RHS.'
+    )
+    parser.add_argument(
+        '--spmm-cols',
+        type=int,
+        default=8,
+        help='Dense RHS column count for SpMM (default: 8). Ignored by SpMV.'
+    )
 
     args = parser.parse_args()
 
-    success = run_cpp_benchmark(args.mtx_dir, args.kernel_name, args.executable)
+    success = run_cpp_benchmark(args.mtx_dir, args.kernel_name, args.executable, args.op, max(1, args.spmm_cols))
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

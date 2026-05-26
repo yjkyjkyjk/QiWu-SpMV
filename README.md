@@ -1,113 +1,156 @@
-# SpMV Benchmark Automation Toolkit
+# SpMV and SpMM Benchmark Toolkit
 
-A complete toolkit for automating Sparse Matrix-Vector Multiplication (SpMV) benchmarks, processing Matrix Market (.mtx) files, and extracting performance metrics into structured reports.
+This project benchmarks sparse matrix kernels on Matrix Market (`.mtx`) inputs. It supports:
 
-## ✨ Features
+- CSR SpMV: `y = A * x`
+- CSR SpMM: `C = A * B`
+- CPU-only builds, plus CUDA/HIP builds when the toolchains are available
+- `double` precision by default and optional `float` precision
+- Automated multi-matrix runs and CSV report extraction
 
-### 🏃 **Automated Benchmark Runner**
+## Requirements
 
-* 🔍 Recursively finds all `.mtx` files in directory
-* 🕒 Auto-generates timestamp for each run
-* ⏱️ Configurable timeouts and parallel execution
-* 📝 Comprehensive logging and error handling
+- CMake 3.18 or newer
+- A C++17 compiler with OpenMP
+- Optional: CUDA `nvcc`
+- Optional: HIP `hipcc`
+- Python 3.6 or newer for automation scripts
 
-### 📊 **Intelligent Report Parser**
+## Build
 
-* 📈 Extracts 15+ performance metrics
-* 🔄 Auto-detects kernel types from reports
-* 📁 Smart CSV naming: `{kernel}_spmv_results.csv`
-* 📊 Built-in statistical analysis and visualization
-
-## 📋 Software Requirements
-
-### Core Requirements
-
-* **Python** : 3.6 or higher
-* **Compiler** : g++, CUDA, HIP,... (for compiling your SpMV implementation)
-* **Memory** : 2GB RAM minimum (more for large matrices)
-* **Disk** : Sufficient space for matrix files and results
-
-## 🚀 Quick Start
-
-### 1. Clone and Setup
-
-```
-git clone https://github.com/QiWu-NCIC/QiWu-SpMV.git
-cd QiWu-SpMV
+```bash
 mkdir build
 cd build
 cmake ..
 make all
 ```
 
-### 2. Basic Usage
+By default the benchmark uses `double` values. Build a float-precision binary with:
 
-```
-#1. Enter the Root of Benchmark
-cd QiWu-SpMV
-
-# 2. Run benchmarks on all .mtx files
-# python auto-spmvbenchmark.py -h for help
-python auto-spmvbenchmark.py path_to_mtx_folder your_kernel_name compiled_exec_name
-
-# 3. Parse results to CSV
-python data-process.py spmv-benchmark-timestamp
-# Output: [kernel_name]_spmv_results.csv (auto-named by kernel)
+```bash
+cmake .. -DSPMV_VALUE_TYPE=float
+make all
 ```
 
-## 🎯 GPU Compatibility
+Valid `SPMV_VALUE_TYPE` values are `double` and `float`.
 
-To support different GPU architectures, modify `CUDA_ARCHITECTURES` in [CMakeLists.txt](CMakeLists.txt):
+## Single-Matrix Usage
 
-- **Line 133 & 216**: Update `CUDA_ARCHITECTURES` with your GPU's compute capability
-- **Common architectures**: 70(V100), 75(T4/RTX20), 80(A100), 86(RTX30)
-- **Example for Pascal GPUs**: `CUDA_ARCHITECTURES "60;61;70;75;80;86"`
+Run SpMV:
 
-## 📊 CSV Columns Extracted
+```bash
+./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmv
+```
 
-The parser extracts the following columns from benchmark reports:
+Run SpMM:
 
-| Column                             | Description                   | Unit         | Example                      |
-| ---------------------------------- | ----------------------------- | ------------ | ---------------------------- |
-| **Basic Matrix Information** |                               |              |                              |
-| `matrix_name`                    | Matrix filename               | -            | `dwa512.mtx`               |
-| `size_rows`                      | Number of rows                | elements     | `512`                      |
-| `size_cols`                      | Number of columns             | elements     | `512`                      |
-| `nnz_per_row`                    | Average non-zeros per row     | count        | `4.0`                      |
-| `total_nnz`                      | Total non-zero elements       | count        | `2048`                     |
-| `sparsity`                       | Matrix sparsity               | ratio (0-1)  | `0.992188`                 |
-|                                    |                               |              |                              |
-| **Performance Metrics**      |                               |              |                              |
-| `kernel`                         | SpMV kernel type              | -            | `default-spmv`             |
-| `preprocess_time_us`             | Preprocessing time            | microseconds | `2.0`                      |
-| `execution_time_us`              | SpMV execution time           | microseconds | `1738.8`                   |
-| `execution_time_ms`              | Execution time (converted)    | milliseconds | `1.7388`                   |
-| `performance_gflops`             | Performance in GFLOPS         | GFLOPS       | `0.00235565`               |
-|                                    |                               |              |                              |
-| **Operation Statistics**     |                               |              |                              |
-| `total_operations`               | Total multiply-add operations | count        | `4096`                     |
-| `memory_accessed_bytes`          | Approximate memory access     | bytes        | `32768`                    |
-|                                    |                               |              |                              |
-| **Derived Metrics**          |                               |              |                              |
-| `memory_bandwidth_gbs`           | Estimated memory bandwidth    | GB/s         | `0.017`                    |
-| `compute_intensity`              | Computational intensity       | FLOPs/Byte   | `0.125`                    |
-|                                    |                               |              |                              |
-| **Validation & Metadata**    |                               |              |                              |
-| `validation_result`              | Correctness check result      | -            | `PASSED` / `FAILED`      |
-| `test_date`                      | Timestamp of test execution   | datetime     | `Sat Jan 24 11:23:52 2026` |
+```bash
+./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm
+```
 
-### Derived Metrics Calculation
+SpMM uses a row-major dense right-hand-side matrix by default:
 
-* **Memory Bandwidth** : `memory_accessed_bytes / (execution_time_us / 1e6) / 1e9` GB/s
-* **Compute Intensity** : `total_operations / memory_accessed_bytes` FLOPs/Byte
-* **Execution Time (ms)** : `execution_time_us / 1000.0`
+- Shape: `ncols(A) x 8`
+- Layout: row-major
 
-## 🤝 Contributing
+Override the dense RHS column count with the optional sixth argument:
 
-We welcome contributions! Here's how to get started:
+```bash
+./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm 16
+```
 
-1. Fork the repository.
-2. Implement your code with C++(.cpp)/CUDA(.cu)/HIP(.hip)/..., e.g. the spmv\_opt.cpp
-3. Modified CMakeList (if necessary) and recompile the project. See Quick Start.
-4. Run the project. See Basic Usage.
-5. Open a new branch (e.g. the branch of opt-with-avx512) and push the codes, machine infomation and results(.csv) to the new branch.
+The executable arguments are:
+
+```text
+<matrix.mtx> <kernel_name> <report_file> [spmv|spmm] [spmm_cols]
+```
+
+`spmv` remains the default operator for backward compatibility. `spmm_cols` defaults to `8` and is only used by SpMM.
+
+## Automated Runs
+
+Run one executable over every `.mtx` file in a directory:
+
+```bash
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu
+```
+
+Run SpMM over every matrix using the default 8 RHS columns:
+
+```bash
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu --op spmm
+```
+
+Run SpMM with another RHS width:
+
+```bash
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu --op spmm --spmm-cols 16
+```
+
+The script looks for executables under `build/`.
+
+## Parse Reports
+
+Convert a text report to CSV:
+
+```bash
+python data-process.py spmv-test-YYYYMMDDHHMMSS
+python data-process.py spmm-test-YYYYMMDDHHMMSS
+```
+
+When the output CSV is not specified, the parser names it as:
+
+```text
+<kernel>_<operator>_results.csv
+```
+
+## Report and CSV Fields
+
+The report parser extracts:
+
+- Matrix metadata: name, rows, columns, nonzeros per row, total nonzeros, sparsity
+- Kernel metadata: kernel name, operator (`SpMV` or `SpMM`), precision, dense RHS columns, dense RHS layout
+- Timings: preprocessing time, average execution time
+- Performance: GFLOPS, total operations, approximate memory accessed
+- Derived metrics: execution time in ms, memory bandwidth, compute intensity
+- Validation result and test date
+
+For SpMV, total operations are `2 * nnz`.
+
+For SpMM, total operations are `2 * nnz * spmm_cols`.
+
+Approximate memory access includes CSR values/column indices plus dense input/output vectors or matrices.
+
+## GPU Architecture Notes
+
+To support different NVIDIA GPU architectures, edit `CUDA_ARCHITECTURES` in `CMakeLists.txt`.
+
+Common values:
+
+- `70`: V100
+- `75`: T4 / RTX 20 series
+- `80`: A100
+- `86`: RTX 30 series
+
+Example for Pascal and newer GPUs:
+
+```cmake
+CUDA_ARCHITECTURES "60;61;70;75;80;86"
+```
+
+## Custom Kernels
+
+Start from:
+
+- CPU: `src/spmv_opt.cpp`
+- CUDA: `src/spmv_opt_cuda.cu`
+- HIP: `src/spmv_opt_hip.hip`
+
+The benchmark stores SpMM dense matrices in row-major order:
+
+```text
+x[col * dense_cols + k]
+y[row * dense_cols + k]
+```
+
+Use `SpMVValue` for scalar values so your implementation works with both `double` and `float` builds.

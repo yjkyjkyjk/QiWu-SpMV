@@ -17,7 +17,7 @@ void SpMV_Benchmark::spmv_preprocess() {
 
 void SpMV_Benchmark::spmv_optimized() {
     // Initialize output vector to zero
-    fill(y.begin(), y.end(), 0.0);
+    fill(y.begin(), y.end(), static_cast<SpMVValue>(0));
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: Students should implement their optimized SpMV kernel here.

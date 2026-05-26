@@ -31,7 +31,7 @@ inline const char* spmv_precision_name() {
 }
 
 class SpMV_Benchmark {
-private:
+protected:
     int nrows;                  // Number of rows
     int ncols;                  // Number of columns
     int nnz;                    // Total number of non-zero elements

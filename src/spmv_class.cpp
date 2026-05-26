@@ -397,8 +397,8 @@ void SpMV_Benchmark::initialize_vectors() {
 
     // Initialize output vector y and reference vector (size nrows)
     for (int i = 0; i < nrows; ++i) {
-        y[i] = 0.0;
-        reference_y[i] = 0.0;
+        y[i] = static_cast<SpMVValue>(0);
+        reference_y[i] = static_cast<SpMVValue>(0);
     }
 }
 
@@ -470,7 +470,7 @@ std::pair<double, double> SpMV_Benchmark::benchmark_spmv(int iterations) {
 
 bool SpMV_Benchmark::validate_correctness() {
     // Using single-threaded result as reference to verify current result's correctness
-    spmv_serial();  // Calculate reference result
+    spmv_serial();
     
     // Re-execute optimized version to get result to be validated
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
@@ -492,7 +492,7 @@ bool SpMV_Benchmark::validate_correctness() {
         ref_norm += reference_y[i] * reference_y[i];
     }
     
-    double relative_error = sqrt(diff_norm) / sqrt(ref_norm);
+    double relative_error = ref_norm > 0.0 ? sqrt(diff_norm) / sqrt(ref_norm) : sqrt(diff_norm);
     
     // Double precision error requirement: relative error should be less than a multiple of machine precision
     const double machine_epsilon = std::numeric_limits<SpMVValue>::epsilon();
@@ -511,7 +511,7 @@ bool SpMV_Benchmark::validate_correctness() {
 
 double SpMV_Benchmark::calculate_performance(double spmv_time_us) {
     // Calculate performance metric: GFLOPS
-    int total_ops = nnz * 2;  // One multiplication and one addition per non-zero element
+    long long total_ops = static_cast<long long>(nnz) * 2;  // One multiplication and one addition per non-zero element
     double time_seconds = spmv_time_us / 1e6;
     double gflops = (total_ops / time_seconds) / 1e9;
     return gflops;
@@ -536,9 +536,12 @@ void SpMV_Benchmark::set_kernel_name(const std::string& kernelname) {
 }
 
 void SpMV_Benchmark::set_report_file(const std::string& reportfile) {
-    if(reportfile == "")
+    if (reportfile.empty()) {
         generate_report_filename();
-    report_filename = reportfile;
+    }
+    else {
+        report_filename = reportfile;
+    }
 }
 
 void SpMV_Benchmark::write_report(std::pair<double, double> timing_results, double perf_gflops, bool correct) {
@@ -567,13 +570,14 @@ void SpMV_Benchmark::write_report(std::pair<double, double> timing_results, doub
     report_file << "  Sparsity: " << sparsity << "\n\n";
     
     report_file << "Benchmark Results:\n";
+    report_file << "  Operator: SpMV\n";
     report_file << "  Kernel: " << kernel_name << "\n";
     report_file << "  Precision: " << spmv_precision_name() << "\n";
     report_file << "  Preprocessing time: " << timing_results.first << " microseconds\n";
     report_file << "  Average SpMV execution time: " << timing_results.second << " microseconds\n";
     report_file << "  Performance: " << perf_gflops << " GFLOPS\n\n";
     
-    int total_ops = nnz * 2;
+    long long total_ops = static_cast<long long>(nnz) * 2;
     report_file << "Additional Metrics:\n";
     report_file << "  Total operations: " << total_ops << " (multiply-adds)\n";
     report_file << "  Memory accessed (approx): " <<
