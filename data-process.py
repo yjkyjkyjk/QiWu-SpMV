@@ -31,6 +31,7 @@ def parse_spmv_report(file_path, output_csv=None):
         'total_nnz': r'Total non-zeros:\s*([\d.]+)',
         'sparsity': r'Sparsity:\s*([\d.]+)',
         'kernel': r'Kernel:\s*(.+)',
+        'precision': r'Precision:\s*(.+)',
         'preprocess_time': r'Preprocessing time:\s*([\d.]+)\s*microseconds',
         'execution_time': r'Average SpMV execution time:\s*([\d.]+)\s*microseconds',
         'performance': r'Performance:\s*([\d.]+)\s*GFLOPS',
@@ -78,6 +79,7 @@ def parse_spmv_report(file_path, output_csv=None):
             'total_nnz': 0,
             'sparsity': 0.0,
             'kernel': 'default',
+            'precision': '',
             'preprocess_time_us': 0.0,
             'execution_time_us': 0.0,
             'performance_gflops': 0.0,
@@ -120,6 +122,11 @@ def parse_spmv_report(file_path, output_csv=None):
             row_data['kernel'] = kernel_name
             kernel_counts[kernel_name] += 1
         
+        # Extract preprocessing time
+        precision_match = re.search(patterns['precision'], report)
+        if precision_match:
+            row_data['precision'] = precision_match.group(1).strip()
+
         # Extract preprocessing time
         preprocess_match = re.search(patterns['preprocess_time'], report)
         if preprocess_match:
@@ -215,6 +222,7 @@ def parse_spmv_report(file_path, output_csv=None):
                 'total_nnz',
                 'sparsity',
                 'kernel',
+                'precision',
                 'preprocess_time_us',
                 'execution_time_us',
                 'execution_time_ms',

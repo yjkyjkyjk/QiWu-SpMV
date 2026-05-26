@@ -34,7 +34,7 @@ void SpMV_Benchmark::spmv_optimized() {
 
     // Simple serial CSR SpMV
     for (int i = 0; i < nrows; ++i) {
-        double sum = 0.0;
+        SpMVValue sum = 0.0;
         for (int j = row_ptr[i]; j < row_ptr[i + 1]; ++j) {
             sum += values[j] * x[col_idx[j]];
         }

@@ -9,7 +9,7 @@ bool g_sync_after_kernel = true;
 }
 
 template <int WARP_SIZE>
-__device__ __forceinline__ double warp_reduce_sum(double sum)
+__device__ __forceinline__ SpMVValue warp_reduce_sum(SpMVValue sum)
 {
   for (int i = WARP_SIZE / 2; i >= 1; i /= 2)
     sum += __shfl_xor_sync(0xffffffff, sum, i, WARP_SIZE);
@@ -21,11 +21,11 @@ template <int BLOCK_SIZE, int WARP_SIZE>
 __launch_bounds__(BLOCK_SIZE)
 __global__ void csr_spmv_kernel(
     const int n,                    // Number of rows in the matrix
-    const double* values,          // Values array of the sparse matrix
+    const SpMVValue* values,      // Values array of the sparse matrix
     const int* col_indices,        // Column indices array
     const int* row_pointers,       // Row pointers array
-    const double* x,          // Input dense vector
-    double* y                 // Output vector
+    const SpMVValue* x,      // Input dense vector
+    SpMVValue* y             // Output vector
 ) {   
     const int lid = threadIdx.x & (WARP_SIZE - 1);        // thread index within the warp
     int gid = blockIdx.x * BLOCK_SIZE + threadIdx.x;
@@ -38,7 +38,7 @@ __global__ void csr_spmv_kernel(
         row_start = row_pointers[row];
         row_end = row_pointers[row + 1];
 
-        double sum = 0.0;
+        SpMVValue sum = 0.0;
         if (WARP_SIZE >= 16 && row_end - row_start > 16)
         {
             // ensure aligned memory access to col_indices and values

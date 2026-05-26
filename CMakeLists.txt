@@ -96,6 +96,16 @@ endforeach()
 option(BUILD_CPU_ONLY     "Build CPU-only executable"      ON)
 option(BUILD_GPU_SUPPORT  "Build GPU-specific executables" ON)
 option(BUILD_UNIFIED      "Build unified CPU+GPU executable" ON)
+set(SPMV_VALUE_TYPE "double" CACHE STRING "Scalar value type for matrix/vector values: double or float")
+set_property(CACHE SPMV_VALUE_TYPE PROPERTY STRINGS double float)
+if(NOT SPMV_VALUE_TYPE STREQUAL "double" AND NOT SPMV_VALUE_TYPE STREQUAL "float")
+    message(FATAL_ERROR "SPMV_VALUE_TYPE must be 'double' or 'float'")
+endif()
+if(SPMV_VALUE_TYPE STREQUAL "float")
+    set(SPMV_USE_FLOAT_DEF SPMV_USE_FLOAT=1)
+else()
+    set(SPMV_USE_FLOAT_DEF SPMV_USE_FLOAT=0)
+endif()
 
 # ------------------------------------------------------------------
 # Target list for installation
@@ -115,6 +125,7 @@ if(BUILD_CPU_ONLY)
         -Wall -Wextra -O3 -DNDEBUG
     )
     target_compile_definitions(${PROJECT_NAME}_cpu PRIVATE CPU_ONLY=1)
+    target_compile_definitions(${PROJECT_NAME}_cpu PRIVATE ${SPMV_USE_FLOAT_DEF})
     add_custom_target(cpu_build DEPENDS ${PROJECT_NAME}_cpu)
     list(APPEND INSTALLABLE_TARGETS ${PROJECT_NAME}_cpu)
 endif()
@@ -142,6 +153,7 @@ if(BUILD_GPU_SUPPORT AND HAS_CUDA AND CUDA_SOURCES)
         CUDA_ENABLED=1
         CPU_IMPLEMENTATION=1
         GPU_IMPLEMENTATION=1
+        ${SPMV_USE_FLOAT_DEF}
     )
     add_custom_target(cuda_build DEPENDS ${PROJECT_NAME}_cuda)
     list(APPEND INSTALLABLE_TARGETS ${PROJECT_NAME}_cuda)
@@ -170,6 +182,7 @@ if(BUILD_GPU_SUPPORT AND HAS_HIP AND HIP_SOURCES)
         HIP_ENABLED=1
         CPU_IMPLEMENTATION=1
         GPU_IMPLEMENTATION=1
+        ${SPMV_USE_FLOAT_DEF}
     )
     add_custom_target(hip_build DEPENDS ${PROJECT_NAME}_hip)
     list(APPEND INSTALLABLE_TARGETS ${PROJECT_NAME}_hip)
@@ -223,6 +236,7 @@ if(BUILD_UNIFIED AND (HAS_CUDA OR HAS_HIP))
         CPU_IMPLEMENTATION=1
         GPU_IMPLEMENTATION=1
         UNIFIED_BUILD=1
+        ${SPMV_USE_FLOAT_DEF}
         $<$<BOOL:${HAS_CUDA}>:CUDA_ENABLED=1>
         $<$<BOOL:${HAS_HIP}>:HIP_ENABLED=1>
     )
@@ -262,6 +276,7 @@ message("==================================================")
 message("Project:              ${PROJECT_NAME}")
 message("Build Type:           ${CMAKE_BUILD_TYPE}")
 message("C++ Standard:         ${CMAKE_CXX_STANDARD}")
+message("Value Type:           ${SPMV_VALUE_TYPE}")
 message("OpenMP:               ${OpenMP_CXX_FOUND}")
 message("CUDA Support:         ${HAS_CUDA}")
 message(STATUS "CUDA_SOURCES = ${CUDA_SOURCES}")    # check if have .cu files

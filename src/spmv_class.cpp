@@ -125,7 +125,7 @@ void SpMV_Benchmark::load_matrix_from_mtx(const std::string& filename) {
 
     // Prepare data structures
     std::vector<int> coo_rows, coo_cols;
-    std::vector<double> coo_vals;
+    std::vector<SpMVValue> coo_vals;
 
     if (is_vector) {
         // Vector object
@@ -178,19 +178,19 @@ void SpMV_Benchmark::load_matrix_from_mtx(const std::string& filename) {
                 // General matrix
                 coo_rows.push_back(row);
                 coo_cols.push_back(col);
-                coo_vals.push_back(real_val);
+                coo_vals.push_back(static_cast<SpMVValue>(real_val));
             }
             else if (is_symmetric) {
                 // Only lower triangle (including diagonal) is stored
                 if (row >= col) {
                     coo_rows.push_back(row);
                     coo_cols.push_back(col);
-                    coo_vals.push_back(real_val);
+                    coo_vals.push_back(static_cast<SpMVValue>(real_val));
                     // Add symmetric element if not on diagonal
                     if (row != col) {
                         coo_rows.push_back(col);
                         coo_cols.push_back(row);
-                        coo_vals.push_back(real_val);
+                        coo_vals.push_back(static_cast<SpMVValue>(real_val));
                     }
                 }
                 else {
@@ -210,12 +210,12 @@ void SpMV_Benchmark::load_matrix_from_mtx(const std::string& filename) {
                     }
                     coo_rows.push_back(row);
                     coo_cols.push_back(col);
-                    coo_vals.push_back(real_val);
+                    coo_vals.push_back(static_cast<SpMVValue>(real_val));
                     // Add skew-symmetric element if not on diagonal
                     if (row != col) {
                         coo_rows.push_back(col);
                         coo_cols.push_back(row);
-                        coo_vals.push_back(-real_val);
+                        coo_vals.push_back(static_cast<SpMVValue>(-real_val));
                     }
                 }
                 else {
@@ -235,14 +235,14 @@ void SpMV_Benchmark::load_matrix_from_mtx(const std::string& filename) {
                     }
                     coo_rows.push_back(row);
                     coo_cols.push_back(col);
-                    coo_vals.push_back(real_val); // Store real part only
+                    coo_vals.push_back(static_cast<SpMVValue>(real_val)); // Store real part only
                     // Add Hermitian conjugate element if not on diagonal
                     if (row != col) {
                         coo_rows.push_back(col);
                         coo_cols.push_back(row);
                         // For Hermitian: A(j,i) = conj(A(i,j))
                         // Since we only store real part, use real_val
-                        coo_vals.push_back(real_val);
+                        coo_vals.push_back(static_cast<SpMVValue>(real_val));
                     }
                 }
                 else {
@@ -264,7 +264,7 @@ void SpMV_Benchmark::load_matrix_from_mtx(const std::string& filename) {
 
 void SpMV_Benchmark::convert_coo_to_csr(const std::vector<int>& coo_rows,
                                        const std::vector<int>& coo_cols,
-                                       const std::vector<double>& coo_vals,
+                                       const std::vector<SpMVValue>& coo_vals,
                                        int nrows, int nnz) {
     this->nrows = nrows;
     this->nnz = nnz;
@@ -299,17 +299,17 @@ void SpMV_Benchmark::convert_coo_to_csr(const std::vector<int>& coo_rows,
 void SpMV_Benchmark::allocate_memory() {
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
     // 使用封装的接口，而不是直接调用 CUDA API
-    d_values = static_cast<double*>(allocate_device_memory(values.size() * sizeof(double)));
+    d_values = static_cast<SpMVValue*>(allocate_device_memory(values.size() * sizeof(SpMVValue)));
     d_col_idx = static_cast<int*>(allocate_device_memory(col_idx.size() * sizeof(int)));
     d_row_ptr = static_cast<int*>(allocate_device_memory(row_ptr.size() * sizeof(int)));
-    d_x = static_cast<double*>(allocate_device_memory(x.size() * sizeof(double)));
-    d_y = static_cast<double*>(allocate_device_memory(y.size() * sizeof(double)));
+    d_x = static_cast<SpMVValue*>(allocate_device_memory(x.size() * sizeof(SpMVValue)));
+    d_y = static_cast<SpMVValue*>(allocate_device_memory(y.size() * sizeof(SpMVValue)));
 
-    copy_host_to_device(d_values, values.data(), values.size() * sizeof(double));
+    copy_host_to_device(d_values, values.data(), values.size() * sizeof(SpMVValue));
     copy_host_to_device(d_col_idx, col_idx.data(), col_idx.size() * sizeof(int));
     copy_host_to_device(d_row_ptr, row_ptr.data(), row_ptr.size() * sizeof(int));
-    copy_host_to_device(d_x, x.data(), x.size() * sizeof(double));
-    memset_device(d_y, 0, y.size() * sizeof(double));
+    copy_host_to_device(d_x, x.data(), x.size() * sizeof(SpMVValue));
+    memset_device(d_y, 0, y.size() * sizeof(SpMVValue));
 #endif
 }
 
@@ -374,7 +374,7 @@ void SpMV_Benchmark::initialize_matrix() {
 
             temp_cols.push_back(col);
             col_idx[nnz_count] = col;
-            values[nnz_count] = val_dis(gen);
+            values[nnz_count] = static_cast<SpMVValue>(val_dis(gen));
             nnz_count++;
         }
     }
@@ -392,7 +392,7 @@ void SpMV_Benchmark::initialize_vectors() {
     
     // Initialize input vector x (size ncols)
     for (int i = 0; i < ncols; ++i) {
-        x[i] = dis(gen);
+        x[i] = static_cast<SpMVValue>(dis(gen));
     }
 
     // Initialize output vector y and reference vector (size nrows)
@@ -405,7 +405,7 @@ void SpMV_Benchmark::initialize_vectors() {
 void SpMV_Benchmark::spmv_serial() {
     // Single-threaded CSR format SpMV calculation (for reference)
     for (int i = 0; i < nrows; ++i) {
-        double sum = 0.0;
+        SpMVValue sum = 0.0;
         for (int j = row_ptr[i]; j < row_ptr[i + 1]; ++j) {
             sum += values[j] * x[col_idx[j]];
         }
@@ -474,13 +474,13 @@ bool SpMV_Benchmark::validate_correctness() {
     
     // Re-execute optimized version to get result to be validated
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
-    memset_device(d_y, 0, y.size() * sizeof(double));
+    memset_device(d_y, 0, y.size() * sizeof(SpMVValue));
 #endif
     run_spmv_kernel();
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
     // Copy result back to host
-    copy_device_to_host(y.data(), d_y, y.size() * sizeof(double));
+    copy_device_to_host(y.data(), d_y, y.size() * sizeof(SpMVValue));
     free_memory();
 #endif
     // Calculate L2 norm relative error
@@ -495,7 +495,7 @@ bool SpMV_Benchmark::validate_correctness() {
     double relative_error = sqrt(diff_norm) / sqrt(ref_norm);
     
     // Double precision error requirement: relative error should be less than a multiple of machine precision
-    const double machine_epsilon = 2.22e-16;
+    const double machine_epsilon = std::numeric_limits<SpMVValue>::epsilon();
     const double tolerance = 1e6 * machine_epsilon; // Allow million times machine precision error
     
     std::cout << "Reference vector norm: " << sqrt(ref_norm) << std::endl;
@@ -568,6 +568,7 @@ void SpMV_Benchmark::write_report(std::pair<double, double> timing_results, doub
     
     report_file << "Benchmark Results:\n";
     report_file << "  Kernel: " << kernel_name << "\n";
+    report_file << "  Precision: " << spmv_precision_name() << "\n";
     report_file << "  Preprocessing time: " << timing_results.first << " microseconds\n";
     report_file << "  Average SpMV execution time: " << timing_results.second << " microseconds\n";
     report_file << "  Performance: " << perf_gflops << " GFLOPS\n\n";
@@ -576,7 +577,7 @@ void SpMV_Benchmark::write_report(std::pair<double, double> timing_results, doub
     report_file << "Additional Metrics:\n";
     report_file << "  Total operations: " << total_ops << " (multiply-adds)\n";
     report_file << "  Memory accessed (approx): " <<
-               ((ncols + nrows) * sizeof(double) + nnz * (sizeof(double) + sizeof(int))) << " bytes\n\n";
+               ((ncols + nrows) * sizeof(SpMVValue) + nnz * (sizeof(SpMVValue) + sizeof(int))) << " bytes\n\n";
     
     report_file << "Correctness Validation:\n";
     report_file << "  Result: " << (correct ? "PASSED" : "FAILED") << "\n\n";

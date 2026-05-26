@@ -13,35 +13,51 @@
 #include <iomanip>
 #include <map>
 #include <utility>
+#include <limits>
+#include <string>
+
+#if defined(SPMV_USE_FLOAT) && SPMV_USE_FLOAT
+using SpMVValue = float;
+#else
+using SpMVValue = double;
+#endif
+
+inline const char* spmv_precision_name() {
+#if defined(SPMV_USE_FLOAT) && SPMV_USE_FLOAT
+    return "float";
+#else
+    return "double";
+#endif
+}
 
 class SpMV_Benchmark {
 private:
     int nrows;                  // Number of rows
     int ncols;                  // Number of columns
     int nnz;                    // Total number of non-zero elements
-    std::vector<double> values; // Matrix values
+    std::vector<SpMVValue> values; // Matrix values
     std::vector<int> col_idx;   // Column indices
     std::vector<int> row_ptr;   // Row pointers
-    std::vector<double> x;      // Input vector
-    std::vector<double> y;      // Output vector
-    std::vector<double> reference_y; // Reference result
+    std::vector<SpMVValue> x;      // Input vector
+    std::vector<SpMVValue> y;      // Output vector
+    std::vector<SpMVValue> reference_y; // Reference result
     std::string report_filename;
     std::string input_filename;
     std::string kernel_name;
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
     // Device pointers for CUDA/HIP
-    double *d_values = nullptr;
+    SpMVValue *d_values = nullptr;
     int *d_col_idx = nullptr;
     int *d_row_ptr = nullptr;
-    double *d_x = nullptr;
-    double *d_y = nullptr;
+    SpMVValue *d_x = nullptr;
+    SpMVValue *d_y = nullptr;
 #endif
 
     void generate_report_filename();
     void convert_coo_to_csr(const std::vector<int>& coo_rows, 
                            const std::vector<int>& coo_cols, 
-                           const std::vector<double>& coo_vals,
+                           const std::vector<SpMVValue>& coo_vals,
                            int nrows, int nnz);
 
 public:

@@ -8,6 +8,7 @@ int main(int argc, char* argv[]) {
     
     std::cout << "SpMV Benchmark Test" << std::endl;   
     std::cout << "===================" << std::endl;
+    std::cout << "Precision: " << spmv_precision_name() << std::endl;
 
     std::unique_ptr<SpMV_Benchmark> benchmark_ptr;
 
