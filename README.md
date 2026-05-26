@@ -28,24 +28,31 @@ make all
 By default the benchmark uses `double` values. Build a float-precision binary with:
 
 ```bash
-cmake .. -DSPMV_VALUE_TYPE=float
+cmake .. -DSPARSE_VALUE_TYPE=float
 make all
 ```
 
-Valid `SPMV_VALUE_TYPE` values are `double` and `float`.
+Valid `SPARSE_VALUE_TYPE` values are `double` and `float`.
+
+The executable targets are named after the full sparse benchmark suite:
+
+- `sparseBenchmark_cpu`
+- `sparseBenchmark_cuda`
+- `sparseBenchmark_hip`
+- `sparseBenchmark_unified`
 
 ## Single-Matrix Usage
 
 Run SpMV:
 
 ```bash
-./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmv
+./build/sparseBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmv
 ```
 
 Run SpMM:
 
 ```bash
-./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm
+./build/sparseBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm
 ```
 
 SpMM uses a row-major dense right-hand-side matrix by default:
@@ -56,7 +63,7 @@ SpMM uses a row-major dense right-hand-side matrix by default:
 Override the dense RHS column count with the optional sixth argument:
 
 ```bash
-./build/spmvBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm 16
+./build/sparseBenchmark_cpu path/to/matrix.mtx my_kernel report.txt spmm 16
 ```
 
 The executable arguments are:
@@ -72,19 +79,19 @@ The executable arguments are:
 Run one executable over every `.mtx` file in a directory:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu
 ```
 
 Run SpMM over every matrix using the default 8 RHS columns:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu --op spmm
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm
 ```
 
 Run SpMM with another RHS width:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name spmvBenchmark_cpu --op spmm --spmm-cols 16
+python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm --spmm-cols 16
 ```
 
 The script looks for executables under `build/`.
@@ -140,11 +147,24 @@ CUDA_ARCHITECTURES "60;61;70;75;80;86"
 
 ## Custom Kernels
 
-Start from:
+The source tree separates shared code, the CLI entry point, and each operator:
 
-- CPU: `src/spmv_opt.cpp`
-- CUDA: `src/spmv_opt_cuda.cu`
-- HIP: `src/spmv_opt_hip.hip`
+```text
+src/
+  app/       benchmark CLI entry point
+  common/    backend device-memory helpers
+  spmv/      SpMV benchmark and SpMV kernel implementations
+  spmm/      SpMM benchmark and SpMM kernel implementations
+```
+
+Start from the operator-specific files:
+
+- SpMV CPU: `src/spmv/opt.cpp`
+- SpMV CUDA: `src/spmv/opt_cuda.cu`
+- SpMV HIP: `src/spmv/opt_hip.hip`
+- SpMM CPU: `src/spmm/opt.cpp`
+- SpMM CUDA: `src/spmm/opt_cuda.cu`
+- SpMM HIP: `src/spmm/opt_hip.hip`
 
 The benchmark stores SpMM dense matrices in row-major order:
 
@@ -153,4 +173,4 @@ x[col * dense_cols + k]
 y[row * dense_cols + k]
 ```
 
-Use `SpMVValue` for scalar values so your implementation works with both `double` and `float` builds.
+Use `BenchmarkValue` for scalar values so your implementation works with both `double` and `float` builds.

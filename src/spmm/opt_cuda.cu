@@ -6,11 +6,11 @@
 __global__ void csr_spmm_kernel(
     const int n,
     const int dense_cols,
-    const SpMVValue* values,
+    const BenchmarkValue* values,
     const int* col_indices,
     const int* row_pointers,
-    const SpMVValue* x,
-    SpMVValue* y
+    const BenchmarkValue* x,
+    BenchmarkValue* y
 ) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     const int total_outputs = n * dense_cols;
@@ -20,7 +20,7 @@ __global__ void csr_spmm_kernel(
 
     const int row = idx / dense_cols;
     const int rhs_col = idx % dense_cols;
-    SpMVValue sum = 0.0;
+    BenchmarkValue sum = 0.0;
     for (int j = row_pointers[row]; j < row_pointers[row + 1]; ++j) {
         const int col = col_indices[j];
         sum += values[j] * x[col * dense_cols + rhs_col];

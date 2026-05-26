@@ -1,11 +1,11 @@
-// spmv_cuda_common.cu
-#include "spmv_device_interface.h"
+// CUDA device memory helpers shared by SpMV and SpMM.
+#include "benchmark_device_interface.h"
 #if defined(CUDA_ENABLED) && CUDA_ENABLED
 #include <cuda_runtime.h>
 #endif
 #include <cstdio>
 
-// CUDA 内存管理函数
+// CUDA memory management functions
 void* allocate_device_memory(size_t bytes) {
 #if defined(CUDA_ENABLED) && CUDA_ENABLED
     void* d_ptr = nullptr;

@@ -39,19 +39,19 @@ def run_cpp_benchmark(folder_path, user_string, executable_name, operator_name="
             result = subprocess.run(command, check=True, text=True, capture_output=True)
             success_count += 1
         except subprocess.CalledProcessError as e:
-            print(f" ❌ Failed on {mtx}: {e}", file=sys.stderr)
+            print(f"Failed on {mtx}: {e}", file=sys.stderr)
             # Uncomment below to see stderr output
             # print(f"   stderr: {e.stderr}", file=sys.stderr)
 
     print("-" * 50)
-    print(f"✅ Completed: {success_count}/{len(mtx_files)} matrices processed.")
+    print(f"Completed: {success_count}/{len(mtx_files)} matrices processed.")
     return True
 
 def main():
     parser = argparse.ArgumentParser(
         prog='auto-spmvbenchmark.py',
         description='Automatically run SpMV or SpMM benchmark on all .mtx files in a directory.',
-        epilog='Example: python auto-spmvbenchmark.py ./matrices_path unroll_cpu spmvBenchmark_cpu --op spmm'
+        epilog='Example: python auto-spmvbenchmark.py ./matrices_path unroll_cpu sparseBenchmark_cpu --op spmm'
     )
 
     parser.add_argument(
@@ -60,14 +60,14 @@ def main():
     )
     parser.add_argument(
         'kernel_name',
-        help='Name for the SpMV implementation'
+        help='Name for the benchmarked kernel implementation'
     )
     parser.add_argument(
         'executable',
         nargs='?',
-        default='spmvBenchmark',
-        help='Name of the compiled executable (default: spmvBenchmark). '
-             'Common options: spmvBenchmark_cpu, spmvBenchmark_cuda, spmvBenchmark_unified'
+        default='sparseBenchmark_cpu',
+        help='Name of the compiled executable (default: sparseBenchmark_cpu). '
+             'Common options: sparseBenchmark_cpu, sparseBenchmark_cuda, sparseBenchmark_unified'
     )
     parser.add_argument(
         '--op',

@@ -2,8 +2,8 @@
 #include <hip/hip_runtime.h>
 
 #if defined(HIP_ENABLED) && HIP_ENABLED
-__global__ void hip_spmm_kernel(const SpMVValue* values, const int* col_idx, const int* row_ptr,
-                                const SpMVValue* x, SpMVValue* y, int n, int dense_cols) {
+__global__ void hip_spmm_kernel(const BenchmarkValue* values, const int* col_idx, const int* row_ptr,
+                                const BenchmarkValue* x, BenchmarkValue* y, int n, int dense_cols) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int total_outputs = n * dense_cols;
     if (idx >= total_outputs) {
@@ -12,7 +12,7 @@ __global__ void hip_spmm_kernel(const SpMVValue* values, const int* col_idx, con
 
     int row = idx / dense_cols;
     int rhs_col = idx % dense_cols;
-    SpMVValue sum = 0.0;
+    BenchmarkValue sum = 0.0;
     int start = row_ptr[row];
     int end = row_ptr[row + 1];
     for (int j = start; j < end; ++j) {

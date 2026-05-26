@@ -17,7 +17,7 @@ void SpMV_Benchmark::spmv_preprocess() {
 
 void SpMV_Benchmark::spmv_optimized() {
     // Initialize output vector to zero
-    fill(y.begin(), y.end(), static_cast<SpMVValue>(0));
+    fill(y.begin(), y.end(), static_cast<BenchmarkValue>(0));
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: Students should implement their optimized SpMV kernel here.
@@ -34,7 +34,7 @@ void SpMV_Benchmark::spmv_optimized() {
 
     // Simple serial CSR SpMV
     for (int i = 0; i < nrows; ++i) {
-        SpMVValue sum = 0.0;
+        BenchmarkValue sum = 0.0;
         for (int j = row_ptr[i]; j < row_ptr[i + 1]; ++j) {
             sum += values[j] * x[col_idx[j]];
         }

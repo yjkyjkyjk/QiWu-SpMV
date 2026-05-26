@@ -13,12 +13,12 @@ void SpMV_Benchmark::spmv_preprocess_hip() {
     // 3. Initialize data structures required for parallel computation
 }
 
-__global__ void my_hip_kernel(const SpMVValue* values, const int* col_idx, const int* row_ptr,
-                              const SpMVValue* x, SpMVValue* y, int n) {
-    // HIP kernel 代码
+__global__ void my_hip_kernel(const BenchmarkValue* values, const int* col_idx, const int* row_ptr,
+                              const BenchmarkValue* x, BenchmarkValue* y, int n) {
+    // HIP kernel code
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < n) {
-        SpMVValue sum = 0.0;
+        BenchmarkValue sum = 0.0;
         int start = row_ptr[idx];
         int end = row_ptr[idx + 1];
         for (int j = start; j < end; ++j) {

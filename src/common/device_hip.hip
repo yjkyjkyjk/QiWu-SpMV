@@ -1,11 +1,11 @@
-// spmv_hip_common.cu
-#include "spmv_device_interface.h"
+// HIP device memory helpers shared by SpMV and SpMM.
+#include "benchmark_device_interface.h"
 #if defined(HIP_ENABLED) && HIP_ENABLED
 #include <hip/hip_runtime.h>
 #endif
 #include <cstdio>
 
-// HIP 内存管理函数
+// HIP memory management functions
 void* allocate_device_memory(size_t bytes) {
 #if defined(HIP_ENABLED) && HIP_ENABLED
     void* d_ptr = nullptr;

@@ -1,5 +1,5 @@
 #include "spmm_benchmark.h"
-#include "spmv_device_interface.h"
+#include "benchmark_device_interface.h"
 
 void SpMM_Benchmark::generate_spmm_report_filename() {
     std::time_t now = std::time(nullptr);
@@ -40,22 +40,22 @@ void SpMM_Benchmark::initialize_dense_matrices() {
     std::uniform_real_distribution<> dis(0.0, 1.0);
 
     for (int i = 0; i < x_size; ++i) {
-        x[i] = static_cast<SpMVValue>(dis(gen));
+        x[i] = static_cast<BenchmarkValue>(dis(gen));
     }
 
     for (int i = 0; i < y_size; ++i) {
-        y[i] = static_cast<SpMVValue>(0);
-        reference_y[i] = static_cast<SpMVValue>(0);
+        y[i] = static_cast<BenchmarkValue>(0);
+        reference_y[i] = static_cast<BenchmarkValue>(0);
     }
 }
 
 void SpMM_Benchmark::spmm_serial() {
-    std::fill(reference_y.begin(), reference_y.end(), static_cast<SpMVValue>(0));
+    std::fill(reference_y.begin(), reference_y.end(), static_cast<BenchmarkValue>(0));
 
     for (int row = 0; row < nrows; ++row) {
         for (int j = row_ptr[row]; j < row_ptr[row + 1]; ++j) {
             const int col = col_idx[j];
-            const SpMVValue val = values[j];
+            const BenchmarkValue val = values[j];
             for (int k = 0; k < dense_cols; ++k) {
                 reference_y[row * dense_cols + k] += val * x[col * dense_cols + k];
             }
@@ -94,8 +94,8 @@ std::pair<double, double> SpMM_Benchmark::benchmark_spmm(int iterations) {
     warm_up_cache(10);
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED
-    synchronize_spmv_cuda();
-    set_spmv_cuda_sync_enabled(0);
+    synchronize_cuda();
+    set_cuda_sync_enabled(0);
 #endif
 
     auto spmm_start = std::chrono::high_resolution_clock::now();
@@ -104,8 +104,8 @@ std::pair<double, double> SpMM_Benchmark::benchmark_spmm(int iterations) {
     }
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED
-    synchronize_spmv_cuda();
-    set_spmv_cuda_sync_enabled(1);
+    synchronize_cuda();
+    set_cuda_sync_enabled(1);
 #endif
 
     auto spmm_end = std::chrono::high_resolution_clock::now();
@@ -121,12 +121,12 @@ bool SpMM_Benchmark::validate_correctness() {
     spmm_serial();
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
-    memset_device(d_y, 0, y.size() * sizeof(SpMVValue));
+    memset_device(d_y, 0, y.size() * sizeof(BenchmarkValue));
 #endif
     run_spmm_kernel();
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
-    copy_device_to_host(y.data(), d_y, y.size() * sizeof(SpMVValue));
+    copy_device_to_host(y.data(), d_y, y.size() * sizeof(BenchmarkValue));
     free_memory();
 #endif
 
@@ -139,7 +139,7 @@ bool SpMM_Benchmark::validate_correctness() {
     }
 
     double relative_error = ref_norm > 0.0 ? std::sqrt(diff_norm) / std::sqrt(ref_norm) : std::sqrt(diff_norm);
-    const double machine_epsilon = std::numeric_limits<SpMVValue>::epsilon();
+    const double machine_epsilon = std::numeric_limits<BenchmarkValue>::epsilon();
     const double tolerance = 1e6 * machine_epsilon;
 
     std::cout << "Reference matrix norm: " << std::sqrt(ref_norm) << std::endl;
@@ -209,7 +209,7 @@ void SpMM_Benchmark::write_report(std::pair<double, double> timing_results, doub
     report_file << "Benchmark Results:\n";
     report_file << "  Operator: SpMM\n";
     report_file << "  Kernel: " << kernel_name << "\n";
-    report_file << "  Precision: " << spmv_precision_name() << "\n";
+    report_file << "  Precision: " << benchmark_precision_name() << "\n";
     report_file << "  Dense RHS columns: " << dense_cols << "\n";
     report_file << "  Dense RHS layout: row-major\n";
     report_file << "  Preprocessing time: " << timing_results.first << " microseconds\n";
@@ -220,7 +220,7 @@ void SpMM_Benchmark::write_report(std::pair<double, double> timing_results, doub
     report_file << "Additional Metrics:\n";
     report_file << "  Total operations: " << total_ops << " (multiply-adds)\n";
     report_file << "  Memory accessed (approx): "
-                << (((ncols + nrows) * dense_cols) * sizeof(SpMVValue) + nnz * (sizeof(SpMVValue) + sizeof(int)))
+                << (((ncols + nrows) * dense_cols) * sizeof(BenchmarkValue) + nnz * (sizeof(BenchmarkValue) + sizeof(int)))
                 << " bytes\n\n";
 
     report_file << "Correctness Validation:\n";

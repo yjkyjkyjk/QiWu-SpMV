@@ -9,7 +9,7 @@ bool g_sync_after_kernel = true;
 }
 
 template <int WARP_SIZE>
-__device__ __forceinline__ SpMVValue warp_reduce_sum(SpMVValue sum)
+__device__ __forceinline__ BenchmarkValue warp_reduce_sum(BenchmarkValue sum)
 {
   for (int i = WARP_SIZE / 2; i >= 1; i /= 2)
     sum += __shfl_xor_sync(0xffffffff, sum, i, WARP_SIZE);
@@ -21,11 +21,11 @@ template <int BLOCK_SIZE, int WARP_SIZE>
 __launch_bounds__(BLOCK_SIZE)
 __global__ void csr_spmv_kernel(
     const int n,                    // Number of rows in the matrix
-    const SpMVValue* values,      // Values array of the sparse matrix
+    const BenchmarkValue* values,      // Values array of the sparse matrix
     const int* col_indices,        // Column indices array
     const int* row_pointers,       // Row pointers array
-    const SpMVValue* x,      // Input dense vector
-    SpMVValue* y             // Output vector
+    const BenchmarkValue* x,      // Input dense vector
+    BenchmarkValue* y             // Output vector
 ) {   
     const int lid = threadIdx.x & (WARP_SIZE - 1);        // thread index within the warp
     int gid = blockIdx.x * BLOCK_SIZE + threadIdx.x;
@@ -38,7 +38,7 @@ __global__ void csr_spmv_kernel(
         row_start = row_pointers[row];
         row_end = row_pointers[row + 1];
 
-        SpMVValue sum = 0.0;
+        BenchmarkValue sum = 0.0;
         if (WARP_SIZE >= 16 && row_end - row_start > 16)
         {
             // ensure aligned memory access to col_indices and values
@@ -116,11 +116,11 @@ void SpMV_Benchmark::spmv_optimized_cuda() {
 }
 
 #if defined(CUDA_ENABLED) && CUDA_ENABLED
-extern "C" void set_spmv_cuda_sync_enabled(int enabled) {
+extern "C" void set_cuda_sync_enabled(int enabled) {
     g_sync_after_kernel = (enabled != 0);
 }
 
-extern "C" void synchronize_spmv_cuda() {
+extern "C" void synchronize_cuda() {
     cudaDeviceSynchronize();
 }
 #endif

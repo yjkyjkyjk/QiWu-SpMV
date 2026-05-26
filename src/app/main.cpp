@@ -11,12 +11,12 @@ int main(int argc, char* argv[]) {
     
     std::cout << "SpMV/SpMM Benchmark Test" << std::endl;
     std::cout << "========================" << std::endl;
-    std::cout << "Precision: " << spmv_precision_name() << std::endl;
+    std::cout << "Precision: " << benchmark_precision_name() << std::endl;
 
     std::string filename;
 
     if (argc > 3) {
-        // 从命令行参数读取.mtx文件
+        // Read matrix path and benchmark options from CLI arguments.
         filename = argv[1];
         kernelname = argv[2];
         reportfile = argv[3];
@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Loading matrix from file: " << filename << std::endl;
     } 
     else {
-        // 参数不全
+        // Missing required arguments.
         std::cout << "Missing Inputs!! Please  Ensure 2 Inputs (path/to/matrix, YourKernelName). " << std::endl; 
         exit(0);
     }
