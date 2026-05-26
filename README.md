@@ -79,19 +79,19 @@ The executable arguments are:
 Run one executable over every `.mtx` file in a directory:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu
+python auto-sparsebenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu
 ```
 
 Run SpMM over every matrix using the default 8 RHS columns:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm
+python auto-sparsebenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm
 ```
 
 Run SpMM with another RHS width:
 
 ```bash
-python auto-spmvbenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm --spmm-cols 16
+python auto-sparsebenchmark.py path_to_mtx_folder kernel_name sparseBenchmark_cpu --op spmm --spmm-cols 16
 ```
 
 The script looks for executables under `build/`.

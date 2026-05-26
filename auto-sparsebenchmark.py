@@ -49,9 +49,9 @@ def run_cpp_benchmark(folder_path, user_string, executable_name, operator_name="
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='auto-spmvbenchmark.py',
+        prog='auto-sparsebenchmark.py',
         description='Automatically run SpMV or SpMM benchmark on all .mtx files in a directory.',
-        epilog='Example: python auto-spmvbenchmark.py ./matrices_path unroll_cpu sparseBenchmark_cpu --op spmm'
+        epilog='Example: python auto-sparsebenchmark.py ./matrices_path unroll_cpu sparseBenchmark_cpu --op spmm'
     )
 
     parser.add_argument(
