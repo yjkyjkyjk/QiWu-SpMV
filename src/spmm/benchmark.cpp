@@ -18,10 +18,7 @@ void SpMM_Benchmark::generate_spmm_report_filename() {
 }
 
 SpMM_Benchmark::SpMM_Benchmark(const std::string& mtx_file, int dense_cols)
-    : SpMV_Benchmark(mtx_file), dense_cols(std::max(1, dense_cols)) {
-#if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
-    free_memory();
-#endif
+    : SparseBenchmarkBase(mtx_file), dense_cols(std::max(1, dense_cols)) {
     initialize_dense_matrices();
 #if defined(CUDA_ENABLED) && CUDA_ENABLED || defined(HIP_ENABLED) && HIP_ENABLED
     allocate_memory();
@@ -153,24 +150,22 @@ bool SpMM_Benchmark::validate_correctness() {
 }
 
 double SpMM_Benchmark::calculate_performance(double spmm_time_us) {
+    if (spmm_time_us <= 0.0) {
+        return 0.0;
+    }
     long long total_ops = static_cast<long long>(nnz) * dense_cols * 2;
     double time_seconds = spmm_time_us / 1e6;
     return (total_ops / time_seconds) / 1e9;
 }
 
 void SpMM_Benchmark::print_matrix_info() {
-    int avg_nnz_per_row = (nrows > 0) ? nnz / nrows : 0;
     std::cout << "Matrix Name: " << input_filename << std::endl;
     std::cout << "Matrix Size: " << nrows << "x" << ncols << std::endl;
     std::cout << "Operator: SpMM" << std::endl;
     std::cout << "Dense RHS columns: " << dense_cols << " (row-major)" << std::endl;
-    std::cout << "Non-zeros per row: " << avg_nnz_per_row << std::endl;
+    std::cout << "Non-zeros per row: " << average_nnz_per_row() << std::endl;
     std::cout << "Total non-zeros: " << nnz << std::endl;
-    double sparsity = 0.0;
-    if (nrows > 0 && ncols > 0) {
-        sparsity = 1.0 - static_cast<double>(nnz) / static_cast<double>(nrows) / static_cast<double>(ncols);
-    }
-    std::cout << "Sparsity: " << sparsity << std::endl;
+    std::cout << "Sparsity: " << sparsity() << std::endl;
 }
 
 void SpMM_Benchmark::set_report_file(const std::string& reportfile) {
@@ -189,12 +184,6 @@ void SpMM_Benchmark::write_report(std::pair<double, double> timing_results, doub
         return;
     }
 
-    int avg_nnz_per_row = (nrows > 0) ? nnz / nrows : 0;
-    double sparsity = 0.0;
-    if (nrows > 0 && ncols > 0) {
-        sparsity = 1.0 - static_cast<double>(nnz) / static_cast<double>(nrows) / static_cast<double>(ncols);
-    }
-
     report_file << "SpMM Benchmark Report\n";
     report_file << "=====================\n";
     std::time_t now = std::time(nullptr);
@@ -202,9 +191,9 @@ void SpMM_Benchmark::write_report(std::pair<double, double> timing_results, doub
     report_file << "Matrix Information:\n";
     report_file << "  Name: " << input_filename << "\n";
     report_file << "  Size: " << nrows << "x" << ncols << "\n";
-    report_file << "  Non-zeros per row: " << avg_nnz_per_row << "\n";
+    report_file << "  Non-zeros per row: " << average_nnz_per_row() << "\n";
     report_file << "  Total non-zeros: " << nnz << "\n";
-    report_file << "  Sparsity: " << sparsity << "\n\n";
+    report_file << "  Sparsity: " << sparsity() << "\n\n";
 
     report_file << "Benchmark Results:\n";
     report_file << "  Operator: SpMM\n";

@@ -1,9 +1,9 @@
 #ifndef SPMM_BENCHMARK_H
 #define SPMM_BENCHMARK_H
 
-#include "spmv_benchmark.h"
+#include "sparse_benchmark_base.h"
 
-class SpMM_Benchmark : public SpMV_Benchmark {
+class SpMM_Benchmark : public SparseBenchmarkBase {
 private:
     int dense_cols = 8;
 
